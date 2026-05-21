@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Home – SRE Dashboard{% endblock %}
+{% block page_title %}SRE Dashboard{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+  <div class="col-12">
+    <h2 class="fw-bold text-dark mb-1">Welcome to the SRE Dashboard</h2>
+    <p class="text-muted mb-0">Central hub for Service Reliability Engineering tooling, inventory, and insights.</p>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- TRM Card -->
+  <div class="col-md-6 col-xl-4">
+    <div class="card h-100">
+      <div class="card-body p-4">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="kpi-icon" style="background:#eff6ff;">
+            <i class="bi bi-table text-primary fs-4"></i>
+          </div>
+          <div>
+            <div class="fw-bold">Technical Reference Manual</div>
+            <small class="text-muted">Software component inventory</small>
+          </div>
+        </div>
+        <p class="text-muted small">Full inventory of all software components, libraries, frameworks, and infrastructure tools used across programs. Track versions, EOL dates, vulnerabilities, and AOR status.</p>
+        <div class="d-flex gap-2 mt-auto">
+          <a href="/trm" class="btn btn-primary btn-sm">View Inventory</a>
+          <a href="/trm/visualization" class="btn btn-outline-secondary btn-sm">Visualize</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Placeholder: Incident Tracker -->
+  <div class="col-md-6 col-xl-4">
+    <div class="card h-100 border-dashed opacity-60">
+      <div class="card-body p-4">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="kpi-icon" style="background:#fef9c3;">
+            <i class="bi bi-activity text-warning fs-4"></i>
+          </div>
+          <div>
+            <div class="fw-bold">Incident Tracker</div>
+            <small class="text-muted">Coming soon</small>
+          </div>
+        </div>
+        <p class="text-muted small">Log and track incidents, outages, and service degradation events. Link incidents to components in the TRM for impact analysis.</p>
+        <span class="badge bg-warning-subtle text-warning">Planned</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Placeholder: Change Management -->
+  <div class="col-md-6 col-xl-4">
+    <div class="card h-100 border-dashed opacity-60">
+      <div class="card-body p-4">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="kpi-icon" style="background:#f0fdf4;">
+            <i class="bi bi-clipboard-check text-success fs-4"></i>
+          </div>
+          <div>
+            <div class="fw-bold">Change Management</div>
+            <small class="text-muted">Coming soon</small>
+          </div>
+        </div>
+        <p class="text-muted small">Manage and track change requests, approvals, and deployment windows. Integrate with the TRM for version upgrade tracking.</p>
+        <span class="badge bg-success-subtle text-success">Planned</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.border-dashed { border: 2px dashed #e2e8f0 !important; }
+</style>
+{% endblock %}
