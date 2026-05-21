@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} – SRE Dashboard{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-3 mb-4">
+  <a href="/trm" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i>Back to Inventory
+  </a>
+</div>
+
+<form method="post" action="{{ action }}" novalidate>
+  <div class="row g-4">
+
+    <!-- ── Left column ──────────────────────────────────────────────────── -->
+    <div class="col-lg-8">
+
+      <!-- Basic Info -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <span class="form-section-title mb-0">Basic Information</span>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label" for="application">Application <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="application" name="application"
+                list="appList"
+                value="{{ entry.application if entry else '' }}"
+                placeholder="e.g. DataPlatform, Analytics API" required>
+              <datalist id="appList">
+                {% for app in applications %}
+                <option value="{{ app }}">
+                {% endfor %}
+              </datalist>
+              <div class="form-text">Application or service that uses this component.</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="tool_name">Tool / Software / Library <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="tool_name" name="tool_name"
+                value="{{ entry.tool_name if entry else '' }}"
+                placeholder="e.g. Spring Boot, FastAPI, Apache Kafka" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="managed_by">Managed By</label>
+              <input type="text" class="form-control" id="managed_by" name="managed_by"
+                list="managedByList"
+                value="{{ entry.managed_by if entry else '' }}"
+                placeholder="e.g. Platform Team">
+              <datalist id="managedByList">
+                <option value="Platform Team">
+                <option value="Data Engineering Team">
+                <option value="ML Team">
+                <option value="SRE Team">
+                <option value="DevOps Team">
+                <option value="Security Team">
+              </datalist>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Version Info -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <span class="form-section-title mb-0">Version Information</span>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label" for="current_version">Current Version</label>
+              <input type="text" class="form-control" id="current_version" name="current_version"
+                value="{{ entry.current_version if entry else '' }}"
+                placeholder="e.g. 3.2.4">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="latest_version">Latest Available Version</label>
+              <input type="text" class="form-control" id="latest_version" name="latest_version"
+                value="{{ entry.latest_version if entry else '' }}"
+                placeholder="e.g. 3.3.1">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- EOL Info -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <span class="form-section-title mb-0">End-of-Life Information</span>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label" for="product_eol">Product EOL Date</label>
+              <input type="date" class="form-control" id="product_eol" name="product_eol"
+                value="{{ entry.product_eol.isoformat() if entry and entry.product_eol else '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="eol_url">EOL URL</label>
+              <input type="url" class="form-control" id="eol_url" name="eol_url"
+                value="{{ entry.eol_url if entry and entry.eol_url else '' }}"
+                placeholder="https://…">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resource Links -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <span class="form-section-title mb-0">Resource Links</span>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label" for="download_url">Download URL</label>
+              <input type="url" class="form-control" id="download_url" name="download_url"
+                value="{{ entry.download_url if entry and entry.download_url else '' }}"
+                placeholder="https://…">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="gsa_gear_url">GSA GEAR URL</label>
+              <input type="url" class="form-control" id="gsa_gear_url" name="gsa_gear_url"
+                value="{{ entry.gsa_gear_url if entry and entry.gsa_gear_url else '' }}"
+                placeholder="https://gear.gsa.gov/…">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vulnerability Info -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <span class="form-section-title mb-0">Vulnerability Information</span>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="form-check form-switch mt-2">
+                <input class="form-check-input" type="checkbox" id="has_vulnerabilities" name="has_vulnerabilities"
+                  {% if entry and entry.has_vulnerabilities %}checked{% endif %}>
+                <label class="form-check-label" for="has_vulnerabilities">Has Vulnerabilities</label>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="cve_report_link">CVE Report Link</label>
+              <input type="url" class="form-control" id="cve_report_link" name="cve_report_link"
+                value="{{ entry.cve_report_link if entry and entry.cve_report_link else '' }}"
+                placeholder="https://nvd.nist.gov/…">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AOR Info -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <span class="form-section-title mb-0">AOR (Authority to Operate) Information</span>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="form-check form-switch mt-2">
+                <input class="form-check-input" type="checkbox" id="aor_submitted" name="aor_submitted"
+                  {% if entry and entry.aor_submitted %}checked{% endif %}>
+                <label class="form-check-label" for="aor_submitted">AOR Submitted</label>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="aor_date">AOR Submission Date</label>
+              <input type="date" class="form-control" id="aor_date" name="aor_date"
+                value="{{ entry.aor_date.isoformat() if entry and entry.aor_date else '' }}">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <span class="form-section-title mb-0">Notes</span>
+        </div>
+        <div class="card-body">
+          <textarea class="form-control" id="notes" name="notes" rows="3"
+            placeholder="Any additional notes, upgrade plans, known issues…">{{ entry.notes if entry and entry.notes else '' }}</textarea>
+        </div>
+      </div>
+
+    </div><!-- /col-lg-8 -->
+
+    <!-- ── Right column ─────────────────────────────────────────────────── -->
+    <div class="col-lg-4">
+
+      <!-- Flags -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <span class="form-section-title mb-0">Flags</span>
+        </div>
+        <div class="card-body">
+          <div class="d-flex flex-column gap-3">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" role="switch"
+                id="active" name="active"
+                {% if (entry is none) or (entry and entry.active) %}checked{% endif %}>
+              <label class="form-check-label" for="active">
+                <span class="fw-semibold">Active</span>
+                <br><small class="text-muted">Component is currently in use</small>
+              </label>
+            </div>
+            <hr class="my-1">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" role="switch"
+                id="open_source" name="open_source"
+                {% if (entry is none) or (entry and entry.open_source) %}checked{% endif %}>
+              <label class="form-check-label" for="open_source">
+                <span class="fw-semibold">Open Source</span>
+                <br><small class="text-muted">Uncheck for commercial / proprietary</small>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Audit info (edit mode only) -->
+      {% if entry %}
+      <div class="card mb-4">
+        <div class="card-header">
+          <span class="form-section-title mb-0">Audit Trail</span>
+        </div>
+        <div class="card-body">
+          <dl class="row mb-0 small">
+            <dt class="col-5 text-muted">Created</dt>
+            <dd class="col-7">{{ entry.created_at.strftime('%Y-%m-%d %H:%M') }}</dd>
+            <dt class="col-5 text-muted">By</dt>
+            <dd class="col-7">{{ entry.created_by or "—" }}</dd>
+            <dt class="col-5 text-muted">Updated</dt>
+            <dd class="col-7">{{ entry.updated_at.strftime('%Y-%m-%d %H:%M') }}</dd>
+            <dt class="col-5 text-muted">By</dt>
+            <dd class="col-7">{{ entry.updated_by or "—" }}</dd>
+          </dl>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Actions -->
+      <div class="card">
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-floppy me-2"></i>
+              {% if entry %}Save Changes{% else %}Create Entry{% endif %}
+            </button>
+            <a href="/trm" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /col-lg-4 -->
+  </div><!-- /row -->
+</form>
+{% endblock %}

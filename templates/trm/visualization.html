@@ -1,0 +1,324 @@
+{% extends "base.html" %}
+{% block title %}TRM Visualization – SRE Dashboard{% endblock %}
+{% block page_title %}TRM Visualization{% endblock %}
+
+{% block content %}
+
+<!-- KPI Cards – loaded once stats arrive -->
+<div id="kpiRow" class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="kpi-card card" style="background:#eff6ff;">
+      <div class="kpi-icon" style="background:#dbeafe;"><i class="bi bi-boxes text-primary"></i></div>
+      <div>
+        <div class="kpi-value" id="kpiTotal">—</div>
+        <div class="kpi-label">Total Components</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card card" style="background:#f0fdf4;">
+      <div class="kpi-icon" style="background:#dcfce7;"><i class="bi bi-check-circle text-success"></i></div>
+      <div>
+        <div class="kpi-value" id="kpiActive">—</div>
+        <div class="kpi-label">Active</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card card" style="background:#fff1f2;">
+      <div class="kpi-icon" style="background:#ffe4e6;"><i class="bi bi-shield-exclamation text-danger"></i></div>
+      <div>
+        <div class="kpi-value" id="kpiVulns">—</div>
+        <div class="kpi-label">With Vulnerabilities</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi-card card" style="background:#fff7ed;">
+      <div class="kpi-icon" style="background:#fed7aa;"><i class="bi bi-exclamation-triangle text-warning"></i></div>
+      <div>
+        <div class="kpi-value" id="kpiEolPast">—</div>
+        <div class="kpi-label">Past EOL</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Row 2: Components by App + EOL Status -->
+<div class="row g-4 mb-4">
+  <div class="col-lg-7">
+    <div class="card h-100">
+      <div class="card-header fw-semibold"><i class="bi bi-bar-chart me-2 text-primary"></i>Components by Application</div>
+      <div class="card-body">
+        <div class="chart-container-lg"><canvas id="chartByApp"></canvas></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card h-100">
+      <div class="card-header fw-semibold"><i class="bi bi-clock-history me-2 text-warning"></i>EOL Status Distribution</div>
+      <div class="card-body d-flex align-items-center justify-content-center">
+        <div class="chart-container"><canvas id="chartEolStatus"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Row 3: Three donut charts -->
+<div class="row g-4 mb-4">
+  <div class="col-md-4">
+    <div class="card h-100">
+      <div class="card-header fw-semibold"><i class="bi bi-shield me-2 text-danger"></i>Vulnerability Status</div>
+      <div class="card-body d-flex align-items-center justify-content-center">
+        <div class="chart-container"><canvas id="chartVulns"></canvas></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card h-100">
+      <div class="card-header fw-semibold"><i class="bi bi-code-square me-2 text-info"></i>Open Source vs Commercial</div>
+      <div class="card-body d-flex align-items-center justify-content-center">
+        <div class="chart-container"><canvas id="chartOpenSource"></canvas></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card h-100">
+      <div class="card-header fw-semibold"><i class="bi bi-activity me-2 text-success"></i>Active vs Inactive</div>
+      <div class="card-body d-flex align-items-center justify-content-center">
+        <div class="chart-container"><canvas id="chartActive"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Row 4: AOR Status + Upcoming EOL table -->
+<div class="row g-4 mb-4">
+  <div class="col-md-4">
+    <div class="card h-100">
+      <div class="card-header fw-semibold"><i class="bi bi-clipboard-check me-2 text-primary"></i>AOR Submission Status</div>
+      <div class="card-body d-flex align-items-center justify-content-center">
+        <div class="chart-container"><canvas id="chartAor"></canvas></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-8">
+    <div class="card h-100">
+      <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-calendar-event me-2 text-primary"></i>Upcoming EOL (next 12 months)</span>
+        <span class="badge bg-primary-subtle text-primary" id="upcomingEolCount">0</span>
+      </div>
+      <div class="card-body p-0" style="max-height:280px;overflow-y:auto;">
+        <table class="table table-sm mb-0" id="upcomingEolTable">
+          <thead class="table-light sticky-top">
+            <tr>
+              <th>Tool</th>
+              <th>Application</th>
+              <th>Version</th>
+              <th>EOL Date</th>
+              <th>Days Left</th>
+            </tr>
+          </thead>
+          <tbody id="upcomingEolBody">
+            <tr><td colspan="5" class="text-center text-muted py-3">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Row 5: Past EOL table -->
+<div class="row g-4">
+  <div class="col-12">
+    <div class="card border-danger">
+      <div class="card-header fw-semibold d-flex justify-content-between align-items-center bg-danger-subtle">
+        <span><i class="bi bi-exclamation-octagon me-2 text-danger"></i>Past EOL – Action Required</span>
+        <span class="badge bg-danger" id="pastEolCount">0</span>
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-sm mb-0" id="pastEolTable">
+          <thead class="table-light">
+            <tr>
+              <th>Tool</th>
+              <th>Application</th>
+              <th>Version</th>
+              <th>EOL Date</th>
+              <th>Days Past EOL</th>
+              <th>Active</th>
+            </tr>
+          </thead>
+          <tbody id="pastEolBody">
+            <tr><td colspan="6" class="text-center text-muted py-3">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<script>
+const PALETTE = {
+  blue:    '#3b82f6',
+  green:   '#22c55e',
+  red:     '#ef4444',
+  orange:  '#f97316',
+  yellow:  '#eab308',
+  purple:  '#a855f7',
+  teal:    '#14b8a6',
+  pink:    '#ec4899',
+  indigo:  '#6366f1',
+  gray:    '#94a3b8',
+};
+
+const APP_COLORS = [
+  PALETTE.blue, PALETTE.green, PALETTE.purple, PALETTE.orange,
+  PALETTE.teal, PALETTE.pink, PALETTE.indigo, PALETTE.yellow,
+];
+
+Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+Chart.defaults.font.size = 12;
+
+function donut(ctx, labels, data, colors) {
+  return new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }]
+    },
+    options: {
+      cutout: '65%',
+      plugins: {
+        legend: { position: 'bottom', labels: { padding: 12, boxWidth: 12 } }
+      },
+      maintainAspectRatio: false
+    }
+  });
+}
+
+function urgencyBadge(days) {
+  if (days <= 30)  return '<span class="badge badge-eol-critical">'+days+' days</span>';
+  if (days <= 90)  return '<span class="badge badge-eol-warning">'+days+' days</span>';
+  if (days <= 180) return '<span class="badge badge-eol-upcoming">'+days+' days</span>';
+  return '<span class="badge badge-eol-ok">'+days+' days</span>';
+}
+
+fetch('/trm/stats')
+  .then(r => r.json())
+  .then(s => {
+    // KPIs
+    document.getElementById('kpiTotal').textContent   = s.total;
+    document.getElementById('kpiActive').textContent  = s.active;
+    document.getElementById('kpiVulns').textContent   = s.with_vulnerabilities;
+    document.getElementById('kpiEolPast').textContent = s.eol_passed;
+
+    // Chart: By Application
+    const appLabels = s.by_application.map(a => a.application);
+    const appCounts = s.by_application.map(a => a.count);
+    new Chart(document.getElementById('chartByApp'), {
+      type: 'bar',
+      data: {
+        labels: appLabels,
+        datasets: [{
+          label: 'Components',
+          data: appCounts,
+          backgroundColor: appLabels.map((_, i) => APP_COLORS[i % APP_COLORS.length]),
+          borderRadius: 6,
+          borderSkipped: false,
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: '#f1f5f9' }, ticks: { precision: 0 } },
+          y: { grid: { display: false } }
+        }
+      }
+    });
+
+    // Chart: EOL Status
+    donut(
+      document.getElementById('chartEolStatus'),
+      ['Past EOL', '≤3 months', '3–6 months', '6–12 months', '>1 year', 'No EOL set'],
+      [s.eol_passed, s.eol_within_3_months, s.eol_within_6_months, s.eol_within_1_year, s.eol_over_1_year, s.no_eol_set],
+      [PALETTE.red, PALETTE.orange, PALETTE.yellow, PALETTE.blue, PALETTE.green, PALETTE.gray]
+    );
+
+    // Chart: Vulnerabilities
+    donut(
+      document.getElementById('chartVulns'),
+      ['Has Vulnerabilities', 'Clean'],
+      [s.with_vulnerabilities, s.without_vulnerabilities],
+      [PALETTE.red, PALETTE.green]
+    );
+
+    // Chart: Open Source
+    donut(
+      document.getElementById('chartOpenSource'),
+      ['Open Source', 'Commercial'],
+      [s.open_source, s.commercial],
+      [PALETTE.teal, PALETTE.orange]
+    );
+
+    // Chart: Active
+    donut(
+      document.getElementById('chartActive'),
+      ['Active', 'Inactive'],
+      [s.active, s.inactive],
+      [PALETTE.green, PALETTE.gray]
+    );
+
+    // Chart: AOR
+    donut(
+      document.getElementById('chartAor'),
+      ['AOR Submitted', 'Pending'],
+      [s.aor_submitted, s.aor_not_submitted],
+      [PALETTE.blue, PALETTE.gray]
+    );
+
+    // Upcoming EOL table
+    document.getElementById('upcomingEolCount').textContent = s.upcoming_eols.length;
+    const upcomingBody = document.getElementById('upcomingEolBody');
+    if (s.upcoming_eols.length === 0) {
+      upcomingBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">No components with EOL in the next 12 months.</td></tr>';
+    } else {
+      upcomingBody.innerHTML = s.upcoming_eols.map(e =>
+        `<tr>
+          <td><a href="/trm/${e.id}/edit" class="fw-medium text-decoration-none">${e.tool_name}</a></td>
+          <td><span class="badge bg-light text-dark border">${e.application}</span></td>
+          <td><code>${e.current_version || '—'}</code></td>
+          <td>${e.eol_date}</td>
+          <td>${urgencyBadge(e.days_until_eol)}</td>
+        </tr>`
+      ).join('');
+    }
+
+    // Past EOL table
+    document.getElementById('pastEolCount').textContent = s.past_eols.length;
+    const pastBody = document.getElementById('pastEolBody');
+    if (s.past_eols.length === 0) {
+      pastBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">No past-EOL components. Great job!</td></tr>';
+    } else {
+      pastBody.innerHTML = s.past_eols.map(e =>
+        `<tr class="table-danger">
+          <td><a href="/trm/${e.id}/edit" class="fw-medium text-decoration-none text-danger">${e.tool_name}</a></td>
+          <td><span class="badge bg-light text-dark border">${e.application}</span></td>
+          <td><code>${e.current_version || '—'}</code></td>
+          <td>${e.eol_date}</td>
+          <td><span class="badge bg-danger">${e.days_past_eol} days ago</span></td>
+          <td>${e.active
+            ? '<span class="badge bg-danger"><i class="bi bi-exclamation-circle me-1"></i>Still Active</span>'
+            : '<span class="badge bg-secondary">Inactive</span>'}</td>
+        </tr>`
+      ).join('');
+    }
+  })
+  .catch(err => console.error('Failed to load stats:', err));
+</script>
+{% endblock %}

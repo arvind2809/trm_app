@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+{% block title %}TRM Inventory – SRE Dashboard{% endblock %}
+{% block page_title %}Technical Reference Manual{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" />
+<link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css" />
+{% endblock %}
+
+{% block content %}
+
+<!-- Alert messages -->
+{% if msg == "created" %}
+<div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+  <i class="bi bi-check-circle me-2"></i>Entry created successfully.
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% elif msg == "updated" %}
+<div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+  <i class="bi bi-check-circle me-2"></i>Entry updated successfully.
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% elif msg == "deleted" %}
+<div class="alert alert-warning alert-dismissible fade show mb-4" role="alert">
+  <i class="bi bi-trash me-2"></i>Entry deleted.
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<!-- Filter bar -->
+<div class="card mb-4">
+  <div class="card-body py-3">
+    <form method="get" action="/trm" class="row g-2 align-items-end">
+      <div class="col-md-3 col-sm-6">
+        <label class="form-label mb-1 small fw-semibold">Application</label>
+        <select name="application" class="form-select form-select-sm">
+          <option value="">All Applications</option>
+          {% for app in applications %}
+          <option value="{{ app }}" {% if current_application == app %}selected{% endif %}>{{ app }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2 col-sm-6">
+        <label class="form-label mb-1 small fw-semibold">Vulnerabilities</label>
+        <select name="has_vulnerabilities" class="form-select form-select-sm">
+          <option value="">All</option>
+          <option value="true" {% if current_has_vulnerabilities == "true" %}selected{% endif %}>Has Vulns</option>
+          <option value="false" {% if current_has_vulnerabilities == "false" %}selected{% endif %}>No Vulns</option>
+        </select>
+      </div>
+      <div class="col-md-2 col-sm-6">
+        <label class="form-label mb-1 small fw-semibold">Status</label>
+        <select name="active" class="form-select form-select-sm">
+          <option value="">All</option>
+          <option value="true" {% if current_active == "true" %}selected{% endif %}>Active</option>
+          <option value="false" {% if current_active == "false" %}selected{% endif %}>Inactive</option>
+        </select>
+      </div>
+      <div class="col-md-3 col-sm-6">
+        <label class="form-label mb-1 small fw-semibold">Search</label>
+        <input type="text" name="search" class="form-control form-control-sm" placeholder="Name, app, notes…" value="{{ current_search }}">
+      </div>
+      <div class="col-md-2 col-sm-12 d-flex gap-2">
+        <button type="submit" class="btn btn-primary btn-sm flex-fill">
+          <i class="bi bi-funnel me-1"></i>Filter
+        </button>
+        <a href="/trm" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-x"></i>
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Main table card -->
+<div class="card">
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <div class="fw-semibold">
+      <i class="bi bi-table me-2 text-primary"></i>
+      Component Inventory
+      <span class="badge bg-secondary ms-2">{{ entries|length }}</span>
+    </div>
+    <a href="/trm/new" class="btn btn-primary btn-sm">
+      <i class="bi bi-plus-lg me-1"></i>Add Entry
+    </a>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table id="trmTable" class="table table-sm table-hover mb-0 w-100">
+        <thead class="table-light">
+          <tr>
+            <th>Application</th>
+            <th>Tool / Library</th>
+            <th>Current Ver.</th>
+            <th>Latest Ver.</th>
+            <th>Status</th>
+            <th>Open Source</th>
+            <th>EOL Date</th>
+            <th>Vulnerabilities</th>
+            <th>AOR</th>
+            <th>Managed By</th>
+            <th class="text-center">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for e in entries %}
+          {% set today_str = today.isoformat() %}
+          {% if e.product_eol %}
+            {% set eol_str = e.product_eol.isoformat() %}
+            {% if eol_str < today_str %}
+              {% set eol_class = "badge-eol-expired" %}
+              {% set eol_icon = "bi-exclamation-octagon-fill" %}
+            {% elif (e.product_eol - today).days <= 90 %}
+              {% set eol_class = "badge-eol-critical" %}
+              {% set eol_icon = "bi-exclamation-triangle-fill" %}
+            {% elif (e.product_eol - today).days <= 180 %}
+              {% set eol_class = "badge-eol-warning" %}
+              {% set eol_icon = "bi-clock-fill" %}
+            {% elif (e.product_eol - today).days <= 365 %}
+              {% set eol_class = "badge-eol-upcoming" %}
+              {% set eol_icon = "bi-calendar-event" %}
+            {% else %}
+              {% set eol_class = "badge-eol-ok" %}
+              {% set eol_icon = "bi-calendar-check" %}
+            {% endif %}
+          {% else %}
+            {% set eol_class = "badge-eol-none" %}
+            {% set eol_icon = "bi-dash" %}
+          {% endif %}
+
+          <tr>
+            <td>
+              <span class="badge bg-light text-dark border">{{ e.application }}</span>
+            </td>
+            <td class="fw-medium">{{ e.tool_name }}</td>
+            <td><code>{{ e.current_version or "—" }}</code></td>
+            <td>
+              {% if e.latest_version and e.current_version and e.latest_version != e.current_version %}
+                <code class="text-warning">{{ e.latest_version }}</code>
+                <i class="bi bi-arrow-up-circle-fill text-warning ms-1" title="Update available"></i>
+              {% else %}
+                <code>{{ e.latest_version or "—" }}</code>
+              {% endif %}
+            </td>
+            <td>
+              {% if e.active %}
+                <span class="badge bg-success-subtle text-success">Active</span>
+              {% else %}
+                <span class="badge bg-secondary-subtle text-secondary">Inactive</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if e.open_source %}
+                <span class="badge bg-info-subtle text-info">Open Source</span>
+              {% else %}
+                <span class="badge bg-warning-subtle text-warning">Commercial</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if e.product_eol %}
+                <span class="badge {{ eol_class }} d-inline-flex align-items-center gap-1">
+                  <i class="bi {{ eol_icon }}"></i>
+                  {{ e.product_eol.strftime('%Y-%m-%d') }}
+                </span>
+              {% else %}
+                <span class="badge badge-eol-none">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if e.has_vulnerabilities %}
+                {% if e.cve_report_link %}
+                  <a href="{{ e.cve_report_link }}" target="_blank" class="badge bg-danger text-white text-decoration-none">
+                    <i class="bi bi-shield-exclamation me-1"></i>Yes
+                  </a>
+                {% else %}
+                  <span class="badge bg-danger"><i class="bi bi-shield-exclamation me-1"></i>Yes</span>
+                {% endif %}
+              {% else %}
+                <span class="badge bg-success-subtle text-success">
+                  <i class="bi bi-shield-check me-1"></i>Clean
+                </span>
+              {% endif %}
+            </td>
+            <td>
+              {% if e.aor_submitted %}
+                <span class="badge bg-success-subtle text-success">
+                  <i class="bi bi-check-circle me-1"></i>Submitted
+                  {% if e.aor_date %}<br><small>{{ e.aor_date.strftime('%Y-%m-%d') }}</small>{% endif %}
+                </span>
+              {% else %}
+                <span class="badge bg-secondary-subtle text-secondary">Pending</span>
+              {% endif %}
+            </td>
+            <td>{{ e.managed_by or "—" }}</td>
+            <td class="text-center">
+              <div class="d-flex gap-1 justify-content-center">
+                <a href="/trm/{{ e.id }}/edit" class="btn btn-sm btn-outline-primary py-0 px-2" title="Edit">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2"
+                  title="Delete"
+                  data-bs-toggle="modal"
+                  data-bs-target="#deleteModal"
+                  data-id="{{ e.id }}"
+                  data-name="{{ e.tool_name }} ({{ e.application }})">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Delete confirmation modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0">
+        <h5 class="modal-title fw-bold">Confirm Delete</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete <strong id="deleteEntryName"></strong>?</p>
+        <p class="text-muted small mb-0">This action cannot be undone.</p>
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <form id="deleteForm" method="post">
+          <button type="submit" class="btn btn-danger">Delete</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script>
+  $(document).ready(function () {
+    $('#trmTable').DataTable({
+      pageLength: 25,
+      lengthMenu: [10, 25, 50, 100],
+      order: [[0, 'asc'], [1, 'asc']],
+      columnDefs: [
+        { orderable: false, targets: 10 }
+      ],
+      language: {
+        search: '',
+        searchPlaceholder: 'Quick search…',
+        lengthMenu: 'Show _MENU_ entries',
+        info: 'Showing _START_–_END_ of _TOTAL_ components',
+      }
+    });
+  });
+
+  // Delete modal wiring
+  const deleteModal = document.getElementById('deleteModal');
+  deleteModal.addEventListener('show.bs.modal', function (event) {
+    const btn = event.relatedTarget;
+    document.getElementById('deleteEntryName').textContent = btn.getAttribute('data-name');
+    document.getElementById('deleteForm').setAttribute('action', '/trm/' + btn.getAttribute('data-id') + '/delete');
+  });
+</script>
+{% endblock %}
