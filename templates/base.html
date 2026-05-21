@@ -35,13 +35,7 @@
       <li class="nav-item">
         <a class="nav-link" href="/trm" data-path="/trm">
           <i class="bi bi-table"></i>
-          <span class="nav-label">TRM Inventory</span>
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" href="/trm/new" data-path="/trm/new">
-          <i class="bi bi-plus-circle"></i>
-          <span class="nav-label">Add Entry</span>
+          <span class="nav-label">Inventory</span>
         </a>
       </li>
       <li class="nav-item">
@@ -104,9 +98,12 @@
   const path = window.location.pathname;
   document.querySelectorAll('.sidebar-nav .nav-link[data-path]').forEach(link => {
     const lp = link.getAttribute('data-path');
-    if (lp === '/' ? path === '/' : path.startsWith(lp)) {
-      link.classList.add('active');
-    }
+    const active = lp === '/trm/visualization'
+      ? path.startsWith('/trm/visualization')
+      : lp === '/trm'
+        ? (path === '/trm' || path === '/trm/' || (path.startsWith('/trm/') && !path.startsWith('/trm/visualization') && !path.startsWith('/trm/stats')))
+        : path === lp;
+    if (active) link.classList.add('active');
   });
 </script>
 </body>

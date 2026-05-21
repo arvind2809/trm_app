@@ -302,6 +302,16 @@ div.dataTables_wrapper div.dataTables_paginate .paginate_button {
   font-size: 0.82rem;
 }
 
+/* ── Sticky filter bar ───────────────────────────────────────────────────── */
+.sticky-filter {
+  position: sticky;
+  top: 57px;       /* sits just below the sticky topbar */
+  z-index: 40;
+  background: #f1f5f9;
+  padding-bottom: 0.5rem;
+  margin-bottom: 0 !important;
+}
+
 /* ── Chart containers ────────────────────────────────────────────────────── */
 .chart-container {
   position: relative;

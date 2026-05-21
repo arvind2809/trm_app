@@ -39,6 +39,36 @@ async def get_stats(db: Session = Depends(get_db)):
     return crud.get_stats(db)
 
 
+@router.get("/{entry_id}/json")
+async def get_entry_json(entry_id: int, db: Session = Depends(get_db)):
+    entry = crud.get_trm_entry(db, entry_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    return {
+        "id": entry.id,
+        "application": entry.application or "",
+        "tool_name": entry.tool_name or "",
+        "current_version": entry.current_version or "",
+        "latest_version": entry.latest_version or "",
+        "active": entry.active,
+        "open_source": entry.open_source,
+        "product_eol": entry.product_eol.isoformat() if entry.product_eol else "",
+        "eol_url": entry.eol_url or "",
+        "gsa_gear_url": entry.gsa_gear_url or "",
+        "download_url": entry.download_url or "",
+        "has_vulnerabilities": entry.has_vulnerabilities,
+        "cve_report_link": entry.cve_report_link or "",
+        "aor_submitted": entry.aor_submitted,
+        "aor_date": entry.aor_date.isoformat() if entry.aor_date else "",
+        "notes": entry.notes or "",
+        "managed_by": entry.managed_by or "",
+        "created_at": entry.created_at.strftime("%Y-%m-%d %H:%M"),
+        "updated_at": entry.updated_at.strftime("%Y-%m-%d %H:%M"),
+        "created_by": entry.created_by or "",
+        "updated_by": entry.updated_by or "",
+    }
+
+
 @router.get("/new", response_class=HTMLResponse)
 async def new_entry_form(request: Request, db: Session = Depends(get_db)):
     applications = crud.get_applications(db)
